@@ -77,3 +77,31 @@ for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {total_loss / len(train_loader):.4f}")
 
 print("Training complete!")
+
+# Define a function to classify an input image from a given file path
+def classify_image(model, filepath):
+    # Load and process the image
+    img = Image.open(filepath).convert("L")  # convert to grayscale
+    img = transforms.ToTensor()(img)  # convert to tensor
+    img = img.unsqueeze(0)  # add batch dimension
+
+    # Set the model to evaluation mode
+    model.eval()
+
+    # Perform classification
+    with torch.no_grad():
+        outputs = model(img)
+        predicted = torch.argmax(outputs, dim=1)  # get the predicted class
+        return predicted.item()
+
+# Interactive mode for image classification
+print("Done!")
+print("Please enter a filepath:")
+#filepath = input("> ")
+
+# Validate the provided file path and classify the image
+#if os.path.exists(filepath):
+    #result = classify_image(model, filepath)
+    #print(f"Classifier: {result}")
+#else:
+    #print("Invalid filepath. Please try again.")
