@@ -8,6 +8,8 @@ from torchvision.datasets import MNIST
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import numpy as np
 import matplotlib.pyplot as plt
+from PIL import Image
+
 
 # Define a different neural network
 class DeepFeedForwardNN(nn.Module):
@@ -16,11 +18,11 @@ class DeepFeedForwardNN(nn.Module):
         self.flatten = nn.Flatten()  # flatten 28x28 images into a 784-dimensional vector
         self.fc1 = nn.Linear(784, 256)  # first fully connected layer, 784 to 256
         self.leaky_relu1 = nn.LeakyReLU(negative_slope=0.01)  # activation function with a slight negative slope
-        self.fc2 = nn.Linear(256, 512)  # second fully connected layer, 256 to 512
-        self.leaky_relu2 = nn.LeakyReLU(negative_slope=0.01)  # activation function
-        self.fc3 = nn.Linear(512, 256)  # third fully connected layer, 512 to 256
-        self.leaky_relu3 = nn.LeakyReLU(negative_slope=0.01)  # activation function
-        self.fc4 = nn.Linear(256, 10)  # output layer, 256 to 10 (10 digits)
+        self.fc2 = nn.Linear(256, 512)  # second
+        self.leaky_relu2 = nn.LeakyReLU(negative_slope=0.01)
+        self.fc3 = nn.Linear(512, 256)  # third layer
+        self.leaky_relu3 = nn.LeakyReLU(negative_slope=0.01)
+        self.fc4 = nn.Linear(256, 10)  # output layer (10 digits)
         self.softmax = nn.LogSoftmax(dim=1)  # output as probabilities
 
     def forward(self, x):
@@ -28,20 +30,33 @@ class DeepFeedForwardNN(nn.Module):
         x = self.fc1(x)  # first layer
         x = self.leaky_relu1(x)  # activation
         x = self.fc2(x)  # second layer
-        x = self.leaky_relu2(x)  # activation
+        x = self.leaky_relu2(x)
         x = self.fc3(x)  # third layer
-        x = self.leaky_relu3(x)  # activation
+        x = self.leaky_relu3(x)
         x = self.fc4(x)  # output layer
-        x = self.softmax(x)  # softmax activation for probabilities
+        x = self.softmax(x)
         return x
 
+def classify_image(model, file_path):
+    # Load the image
+    image = Image.open(file_path).convert("L")  # Convert to grayscale
+    transform = transforms.Compose([
+        transforms.Resize((28, 28)),  # Resize to 28x28 (MNIST size)
+        transforms.ToTensor()
+    ])
+    image_tensor = transform(image).unsqueeze(0)  # Add batch dimension
+    model.eval()
+    with torch.no_grad():
+        output = model(image_tensor)
+        _, predicted = torch.max(output, dim=1)  # Get predicted class
+        return predicted.item()  # Return the predicted class
 
 # Load MNIST datasets
 transform = transforms.Compose([transforms.ToTensor()])
 
 DATA_DIR = "."
-mnist_train = datasets.MNIST(DATA_DIR, train=True, download=True, transform=transform)
-mnist_test = datasets.MNIST(DATA_DIR, train=False, download=True, transform=transform)
+mnist_train = datasets.MNIST(DATA_DIR, train=True, download=False, transform=transform)
+mnist_test = datasets.MNIST(DATA_DIR, train=False, download=False, transform=transform)
 
 train_size = int(0.8 * len(mnist_train))
 val_size = len(mnist_train) - train_size
@@ -54,20 +69,19 @@ test_loader = data.DataLoader(mnist_test, batch_size=32, shuffle=False)
 # Instantiate the model and set the training configuration
 model = DeepFeedForwardNN()
 loss_function = nn.CrossEntropyLoss()  # loss function for classification
-optimizer = optim.Adagrad(model.parameters(), lr=0.005)  # different optimizer with smaller learning rate
+optimizer = optim.Adagrad(model.parameters(), lr=0.005, weight_decay=0.001) # Apply L2 regularization with a small value (0.001)
 
 # Early stopping based on validation accuracy
 early_stop_patience = 5
 best_val_accuracy = 0
 epochs_since_last_improvement = 0
-
-# Number of epochs
 num_epochs = 40
 
 # Lists to store loss and accuracy for plotting
 train_losses = []
 val_accuracies = []
 
+print("Training in progress....")
 # Training loop with early stopping
 for epoch in range(num_epochs):
     if epochs_since_last_improvement >= early_stop_patience:
@@ -112,28 +126,11 @@ for epoch in range(num_epochs):
 
     print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {avg_train_loss:.4f}, Validation Accuracy: {val_accuracy:.4f}")
 
-print("Training complete!")
+print("Done!")
 
-# Plot training loss and validation accuracy
+model = DeepFeedForwardNN()
 
-epochs = list(range(1, len(train_losses) + 1))
-fig, ax1 = plt.subplots()
-
-ax1.set_xlabel("Epochs")
-ax1.set_ylabel("Training Loss", color='tab:red')
-ax1.plot(epochs, train_losses, color='tab:red')
-ax1.tick_params(axis='y', labelcolor='tab:red')
-
-ax2 = ax1.twinx()
-ax2.set_ylabel("Validation Accuracy", color='tab:blue')
-ax2.plot(epochs, val_accuracies, color='tab:blue')
-ax2.tick_params(axis='y', labelcolor='tab:blue')
-
-plt.title("Training Loss and Validation Accuracy")
-plt.show()
-
-#test accuracy
-# Pick 5 random images from the test set
+##Pick 5 random images from the test set
 import random
 
 # Get 5 random indices for test data
@@ -157,3 +154,19 @@ for idx, (image, label, predicted_label) in enumerate(zip(images, labels, predic
     plt.imshow(image.squeeze().numpy(), cmap='gray')
     plt.title(f"Predicted: {predicted_label}, True Label: {label}")
     plt.show()
+
+##end of random test
+
+while True:
+    file_path = input("Please enter a filepath: ")
+
+    if file_path.lower() == "exit":
+        print("Exiting...")
+        break  # Exit the loop when user types 'exit'
+
+    if not os.path.exists(file_path):
+        print("The specified file path does not exist. Please try again.")
+    else:
+        # Classify the image
+        predicted_class = classify_image(model, file_path)  # Classify using the function defined earlier
+        print(f"Classifier: {predicted_class}")

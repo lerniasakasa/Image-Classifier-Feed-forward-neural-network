@@ -1,0 +1,35 @@
+# Final model(3)  
+Epoch 1/40, Loss: 0.2303, Validation Accuracy: 0.9587
+Epoch 2/40, Loss: 0.1054, Validation Accuracy: 0.9671
+Epoch 3/40, Loss: 0.0764, Validation Accuracy: 0.9705
+Epoch 4/40, Loss: 0.0599, Validation Accuracy: 0.9728
+Epoch 5/40, Loss: 0.0486, Validation Accuracy: 0.9752
+Epoch 6/40, Loss: 0.0397, Validation Accuracy: 0.9749
+Epoch 7/40, Loss: 0.0333, Validation Accuracy: 0.9771
+Epoch 8/40, Loss: 0.0281, Validation Accuracy: 0.9781
+Epoch 9/40, Loss: 0.0239, Validation Accuracy: 0.9767
+Epoch 10/40, Loss: 0.0203, Validation Accuracy: 0.9772
+Epoch 11/40, Loss: 0.0174, Validation Accuracy: 0.9787
+Epoch 12/40, Loss: 0.0149, Validation Accuracy: 0.9788
+Epoch 13/40, Loss: 0.0129, Validation Accuracy: 0.9790
+Epoch 14/40, Loss: 0.0111, Validation Accuracy: 0.9789
+Epoch 15/40, Loss: 0.0096, Validation Accuracy: 0.9780
+Epoch 16/40, Loss: 0.0083, Validation Accuracy: 0.9788
+Epoch 17/40, Loss: 0.0074, Validation Accuracy: 0.9797
+Epoch 18/40, Loss: 0.0065, Validation Accuracy: 0.9787
+Epoch 19/40, Loss: 0.0058, Validation Accuracy: 0.9798
+Epoch 20/40, Loss: 0.0051, Validation Accuracy: 0.9802
+Epoch 21/40, Loss: 0.0045, Validation Accuracy: 0.9796
+Epoch 22/40, Loss: 0.0040, Validation Accuracy: 0.9792
+Epoch 23/40, Loss: 0.0035, Validation Accuracy: 0.9792
+Epoch 24/40, Loss: 0.0032, Validation Accuracy: 0.9792
+Epoch 25/40, Loss: 0.0029, Validation Accuracy: 0.9794
+Early stopping at epoch 25
+Training complete!
+
+Test input>>
+Image 1: Predicted = 3, True Label = 3, Correct = True
+Image 2: Predicted = 5, True Label = 5, Correct = True
+Image 3: Predicted = 1, True Label = 1, Correct = True
+Image 4: Predicted = 9, True Label = 9, Correct = True
+Image 5: Predicted = 2, True Label = 2, Correct = True
