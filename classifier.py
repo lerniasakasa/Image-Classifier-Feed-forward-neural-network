@@ -1,172 +1,135 @@
-import os
+#Author: Sakasa Lernia
+#Student no: SKSLER002
+#Date 21 April 2024
+#ANN for classifying hand drawn images
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
 from torchvision import datasets, transforms
-from torchvision.datasets import MNIST
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+import matplotlib.pyplot as plt  #Used for plotting training loss and validation accuracy graph
 import numpy as np
-import matplotlib.pyplot as plt
-from PIL import Image
+import os
+import random
 
-
-# Define a different neural network
-class DeepFeedForwardNN(nn.Module):
+# Defining the neural network
+class ANNReLU(nn.Module):
     def __init__(self):
-        super(DeepFeedForwardNN, self).__init__()
-        self.flatten = nn.Flatten()  # flatten 28x28 images into a 784-dimensional vector
-        self.fc1 = nn.Linear(784, 256)  # first fully connected layer, 784 to 256
-        self.leaky_relu1 = nn.LeakyReLU(negative_slope=0.01)  # activation function with a slight negative slope
-        self.fc2 = nn.Linear(256, 512)  # second
-        self.leaky_relu2 = nn.LeakyReLU(negative_slope=0.01)
-        self.fc3 = nn.Linear(512, 256)  # third layer
-        self.leaky_relu3 = nn.LeakyReLU(negative_slope=0.01)
-        self.fc4 = nn.Linear(256, 10)  # output layer (10 digits)
-        self.softmax = nn.LogSoftmax(dim=1)  # output as probabilities
+        super(ANNReLU, self).__init__()
+
+        # Using relu activation fucntion for the hidden layers and logSoftmax for the output layer.
+        self.flatten = nn.Flatten()  # Flattening the input
+        self.fc1 = nn.Linear(784, 128)  # 1st hidden layer with 128 nodes
+        self.relu1 = nn.ReLU()
+        self.fc2 = nn.Linear(128, 64)  #Second HIDDEN LAYER
+        self.relu2 = nn.ReLU()
+        self.fc3 = nn.Linear(64, 10)  # Output layer
+        self.log_softmax = nn.LogSoftmax(dim=1)
 
     def forward(self, x):
-        x = self.flatten(x)  # flatten input
-        x = self.fc1(x)  # first layer
-        x = self.leaky_relu1(x)  # activation
-        x = self.fc2(x)  # second layer
-        x = self.leaky_relu2(x)
-        x = self.fc3(x)  # third layer
-        x = self.leaky_relu3(x)
-        x = self.fc4(x)  # output layer
-        x = self.softmax(x)
+        x = self.flatten(x)  # Flatten the input
+        x = self.fc1(x)  # First hidden layer
+        x = self.relu1(x)
+        x = self.fc2(x)  # Second hidden layer
+        x = self.relu2(x)
+        x = self.fc3(x)  # Output
+        x = self.log_softmax(x)
         return x
 
+# Function to classify images with the trained model
 def classify_image(model, file_path):
-    # Load the image
+    # Load and preprocess the image
     image = Image.open(file_path).convert("L")  # Convert to grayscale
     transform = transforms.Compose([
-        transforms.Resize((28, 28)),  # Resize to 28x28 (MNIST size)
+        transforms.Resize((28, 28)),  # Resize
         transforms.ToTensor()
     ])
     image_tensor = transform(image).unsqueeze(0)  # Add batch dimension
     model.eval()
     with torch.no_grad():
-        output = model(image_tensor)
+        output = model(image_tensor)  # Get model output
         _, predicted = torch.max(output, dim=1)  # Get predicted class
-        return predicted.item()  # Return the predicted class
+        return predicted.item()
 
-# Load MNIST datasets
+
+# Load the MNIST dataset
 transform = transforms.Compose([transforms.ToTensor()])
 
 DATA_DIR = "."
 mnist_train = datasets.MNIST(DATA_DIR, train=True, download=False, transform=transform)
 mnist_test = datasets.MNIST(DATA_DIR, train=False, download=False, transform=transform)
 
+# Split into training and validation sets
 train_size = int(0.8 * len(mnist_train))
 val_size = len(mnist_train) - train_size
 mnist_training, mnist_validation = data.random_split(mnist_train, [train_size, val_size])
 
-train_loader = data.DataLoader(mnist_training, batch_size=32, shuffle=True)  # smaller batch size
+train_loader = data.DataLoader(mnist_training, batch_size=32, shuffle=True)
 val_loader = data.DataLoader(mnist_validation, batch_size=32, shuffle=False)
-test_loader = data.DataLoader(mnist_test, batch_size=32, shuffle=False)
 
-# Instantiate the model and set the training configuration
-model = DeepFeedForwardNN()
-loss_function = nn.CrossEntropyLoss()  # loss function for classification
-optimizer = optim.Adagrad(model.parameters(), lr=0.005, weight_decay=0.001) # Apply L2 regularization with a small value (0.001)
+# Initialize the model, optimizer, and loss function
+model = ANNReLU()
+loss_function = nn.CrossEntropyLoss()  # Loss function for classification
+optimizer = optim.Adam(model.parameters(), lr=0.001)  # Adam optimizer with a learning rate of 0.001
 
-# Early stopping based on validation accuracy
-early_stop_patience = 5
-best_val_accuracy = 0
-epochs_since_last_improvement = 0
-num_epochs = 40
+num_epochs = 25 #previous 80->45->30
 
-# Lists to store loss and accuracy for plotting
+# Lists to track metrics
 train_losses = []
 val_accuracies = []
 
-print("Training in progress....")
-# Training loop with early stopping
-for epoch in range(num_epochs):
-    if epochs_since_last_improvement >= early_stop_patience:
-        print(f"Early stopping at epoch {epoch}")
-        break
+print("Training the model...")
 
-    model.train()
+# Training loop with a fixed number of epochs
+for epoch in range(num_epochs):
+    model.train()  # Set to training mode
     total_loss = 0
 
     for images, labels in train_loader:
-        optimizer.zero_grad()  # reset gradients
-        outputs = model(images)  # forward pass
-        loss = loss_function(outputs, labels)  # compute loss
-        loss.backward()  # backward pass
-        optimizer.step()  # update weights
-        total_loss += loss.item()  # accumulate loss
+        optimizer.zero_grad()  # Resetting gradients
+        outputs = model(images)  # Forward pass
+        loss = loss_function(outputs, labels)
+        loss.backward()  # Backward pass
+        optimizer.step()  # Update weights
+        total_loss += loss.item()  # Accumulate total loss
 
-    avg_train_loss = total_loss / len(train_loader)  # average training loss
+    avg_train_loss = total_loss / len(train_loader)  # Average training loss
     train_losses.append(avg_train_loss)
 
-    # Validation accuracy calculation
+    # Validation phase
     model.eval()
     correct = 0
     total = 0
 
     with torch.no_grad():
         for images, labels in val_loader:
-            outputs = model(images)  # forward pass
-            _, predicted = torch.max(outputs, dim=1)  # get predicted labels
-            correct += (predicted == labels).sum().item()  # count correct predictions
+            outputs = model(images)  # Forward pass
+            _, predicted = torch.max(outputs, dim=1)  # Get predicted labels
+            correct += (predicted == labels).sum().item()  # Count correct predictions
             total += labels.size(0)
 
-    val_accuracy = correct / total  # calculate accuracy
+    val_accuracy = correct / total  # Calculate validation accuracy
     val_accuracies.append(val_accuracy)
 
-    # Check for early stopping condition based on validation accuracy
-    if val_accuracy > best_val_accuracy:
-        best_val_accuracy = val_accuracy
-        epochs_since_last_improvement = 0
-    else:
-        epochs_since_last_improvement += 1
+    print(f"Epoch {epoch + 1}/{num_epochs}, "
+          f"Training Loss: {avg_train_loss:.4f}, "
+          f"Validation Accuracy: {val_accuracy:.4f}")
 
-    print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {avg_train_loss:.4f}, Validation Accuracy: {val_accuracy:.4f}")
+print("Training completed!")
 
-print("Done!")
-
-model = DeepFeedForwardNN()
-
-##Pick 5 random images from the test set
-import random
-
-# Get 5 random indices for test data
-random_indices = random.sample(range(len(mnist_test)), 5)
-
-# Get the corresponding images and labels
-images, labels = zip(*[mnist_test[i] for i in random_indices])
-
-# Make predictions on these images
-model.eval()  # set the model to evaluation mode
-with torch.no_grad():  # no gradient calculation
-    predictions = [model(image.unsqueeze(0)) for image in images]  # get model output for each image
-    predicted_labels = [torch.argmax(prediction, dim=1).item() for prediction in predictions]  # get the predicted labels
-
-# Print the predictions and check accuracy
-for idx, (image, label, predicted_label) in enumerate(zip(images, labels, predicted_labels)):
-    accuracy = predicted_label == label
-    print(f"Image {idx+1}: Predicted = {predicted_label}, True Label = {label}, Correct = {accuracy}")
-
-    # Display the image
-    plt.imshow(image.squeeze().numpy(), cmap='gray')
-    plt.title(f"Predicted: {predicted_label}, True Label: {label}")
-    plt.show()
-
-##end of random test
+# Allowing user input to classify an image
+import PIL.Image as Image
 
 while True:
     file_path = input("Please enter a filepath: ")
 
-    if file_path.lower() == "exit":
+    if file_path.lower() == "exit":  # Exit loop
         print("Exiting...")
-        break  # Exit the loop when user types 'exit'
+        break
 
     if not os.path.exists(file_path):
-        print("The specified file path does not exist. Please try again.")
+        print("The specified file path does not exist. Please try again.")  # invalid paths
     else:
-        # Classify the image
-        predicted_class = classify_image(model, file_path)  # Classify using the function defined earlier
+        predicted_class = classify_image(model, file_path)  # Classify using the helper function
         print(f"Classifier: {predicted_class}")
